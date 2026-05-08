@@ -3,6 +3,7 @@ import plotly.graph_objects as go
 from .services.data_service import DataService
 from .services.ml_service import MLService
 from .services.agent_graph import QuantAgent
+from .models import AnalysisReport
 
 
 def analysis_lab(request):
@@ -81,7 +82,20 @@ def run_analysis(request):
                 "ai_report": ai_report,
             }
         )
+
+        AnalysisReport.objects.create(
+            ticker=ticker,
+            current_price=round(df["close"].iloc[-1], 2),
+            prediction_score=xgboost_prob * 100,
+            sentiment=sentiment,
+            ai_report=ai_report,
+        )
     except Exception as e:
         context["error"] = str(e)
 
     return render(request, "analyst/partials/results.html", context)
+
+
+def vault(request):
+    reports = AnalysisReport.objects.all().order_by("-created_at")
+    return render(request, "analyst/vault.html", {"reports": reports})
