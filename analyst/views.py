@@ -18,34 +18,53 @@ def run_analysis(request):
     context = {"ticker": ticker}
 
     try:
-        # 1. Fetch Data
+        # 1. Fetch Data (Always needed for the chart)
         df = data_service.fetch_stock_data(ticker)
 
-        # 2. Fetch News (isolated failure handling)
+        # 2. Check Database for today's cache
+        from django.utils import timezone
+
+        today = timezone.now().date()
+        existing_report = AnalysisReport.objects.filter(ticker=ticker).first()
         news = []
-        try:
-            news = data_service.fetch_news_sentiment(ticker)
-        except Exception as e:
-            print(f"DEBUG: News service failed: {e}")
 
-        # 2. Run ML Models
-        xgboost_prob = ml_service.predict_price_movement(df)
-        sentiment = ml_service.analyze_sentiment(news)
+        if existing_report and existing_report.created_at.date() == today:
+            # CACHE HIT: Skip ML and LLM, use the database record
+            xgboost_prob = existing_report.prediction_score / 100.0
+            sentiment = existing_report.sentiment
+            ai_report = existing_report.ai_report
+        else:
+            # CACHE MISS: Run the pipeline
+            try:
+                news = data_service.fetch_news_sentiment(ticker)
+            except Exception as e:
+                print(f"DEBUG: News service failed: {e}")
 
-        # 3. Agent Synthesis
-        agent = QuantAgent()
-        ai_report = agent.run(
-            ticker=ticker,
-            price=round(df["close"].iloc[-1], 2),
-            score=xgboost_prob,
-            sentiment=sentiment,
-        )
+            xgboost_prob = ml_service.predict_price_movement(df)
+            sentiment = ml_service.analyze_sentiment(news)
+
+            agent = QuantAgent()
+            ai_report = agent.run(
+                ticker=ticker,
+                price=round(df["close"].iloc[-1], 2),
+                score=xgboost_prob,
+                sentiment=sentiment,
+            )
+
+            # Clean the Vault: Delete any old records for this ticker
+            AnalysisReport.objects.filter(ticker=ticker).delete()
+
+            # Save the new record
+            AnalysisReport.objects.create(
+                ticker=ticker,
+                current_price=round(df["close"].iloc[-1], 2),
+                prediction_score=xgboost_prob * 100,
+                sentiment=sentiment,
+                ai_report=ai_report,
+            )
 
         # Chart Generation
-        # 1. Give Plotly plenty of data to scroll into (e.g., last 180 trading days)
         df_chart = df.tail(180)
-
-        # 2. Convert to native Python lists for bulletproof JSON serialization
         fig = go.Figure(
             data=[
                 go.Candlestick(
@@ -58,7 +77,6 @@ def run_analysis(request):
             ]
         )
 
-        # 3. Calculate the date range for the last 30 days for our default zoom
         initial_start = df_chart.index[-30].strftime("%Y-%m-%d")
         initial_end = df_chart.index[-1].strftime("%Y-%m-%d")
 
@@ -67,34 +85,20 @@ def run_analysis(request):
             margin=dict(l=0, r=0, t=30, b=0),
             template="plotly_dark",
             xaxis_rangeslider_visible=False,
-            # Tell Plotly to start zoomed in on this specific window
             xaxis=dict(range=[initial_start, initial_end]),
         )
-
-        # Generate the HTML snippet
         chart_html = fig.to_html(full_html=False, include_plotlyjs=False)
-
-        # 3. Generate the HTML snippet
-        chart_html = fig.to_html(full_html=False, include_plotlyjs="cdn")
 
         # 4. Populate Context
         context.update(
             {
                 "chart_html": chart_html,
-                "news_count": len(news),
-                "news": news[:5],
+                "news_count": len(news) if news else 0,
+                "news": news[:5] if news else [],
                 "prediction_score": xgboost_prob * 100,
                 "sentiment": sentiment,
                 "ai_report": ai_report,
             }
-        )
-
-        AnalysisReport.objects.create(
-            ticker=ticker,
-            current_price=round(df["close"].iloc[-1], 2),
-            prediction_score=xgboost_prob * 100,
-            sentiment=sentiment,
-            ai_report=ai_report,
         )
     except Exception as e:
         context["error"] = str(e)

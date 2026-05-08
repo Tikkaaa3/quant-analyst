@@ -48,3 +48,4 @@ build/
 
 # DB
 db.sqlite3
+data/
