@@ -3,6 +3,7 @@ import json
 import requests
 import pandas as pd
 import numpy as np
+import time
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -28,6 +29,8 @@ class DataService:
             "outputsize": "compact",  # Last 100 days
         }
 
+        print("DEBUG: Sleeping for 2 seconds to respect API limits...")
+        time.sleep(2)
         response = requests.get(self.base_url, params=params)
         data = response.json()
 
@@ -65,6 +68,8 @@ class DataService:
             "limit": 50,
         }
 
+        print("DEBUG: Sleeping for 2 seconds to respect API limits...")
+        time.sleep(2)
         response = requests.get(self.base_url, params=params)
         data = response.json()
 
