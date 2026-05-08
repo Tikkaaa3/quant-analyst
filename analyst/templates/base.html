@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QuantAnalyst AI</title>
+    <!-- Tailwind for Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- HTMX for React-like Interactivity -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  </head>
+  <body class="bg-slate-900 text-slate-100 font-sans">
+    <div class="flex h-screen overflow-hidden">
+      <!-- Sidebar / Navigation -->
+      <aside class="w-64 bg-slate-800 border-r border-slate-700 p-6">
+        <h1 class="text-xl font-bold text-blue-400 mb-8">QuantAnalyst</h1>
+        <nav class="space-y-4">
+          <a href="#" class="block text-slate-300 hover:text-white"
+            >Dashboard</a
+          >
+          <a href="#" class="block text-white font-semibold">Analysis Lab</a>
+          <a href="#" class="block text-slate-300 hover:text-white">Vault</a>
+        </nav>
+      </aside>
+
+      <!-- Main Content (The 3-Column Area) -->
+      <main class="flex-1 overflow-y-auto">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+
+    <!-- CSRF token for HTMX POST requests -->
+    <script>
+      document.body.addEventListener("htmx:configRequest", (event) => {
+        event.detail.headers["X-CSRFToken"] = "{{ csrf_token }}";
+      });
+    </script>
+  </body>
+</html>

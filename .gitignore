@@ -1,0 +1,47 @@
+
+# --- dev-init managed section ---
+# Agent/Tool Generated Files
+AGENTS.md
+CONVENTIONS.md
+firecrawl_skill.md
+firecrawl_skills.md
+
+# Graphify Output
+graphify-out/
+
+# Firecrawl Data
+.firecrawl/
+
+# Environment Files
+.env
+.env.local
+.env.*.local
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Dependencies
+node_modules/
+target/
+__pycache__/
+*.pyc
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+.coverage
+
+# IDE & Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Aider
+.aider*
+# --- end dev-init managed ---
