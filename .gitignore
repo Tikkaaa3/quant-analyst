@@ -45,3 +45,6 @@ build/
 # Aider
 .aider*
 # --- end dev-init managed ---
+
+# DB
+db.sqlite3
