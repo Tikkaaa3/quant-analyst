@@ -35,8 +35,19 @@ def run_analysis(request):
         )
 
         # Chart Generation
-        fig = go.Figure(data=[go.Candlestick(x=df.index, open=df['open'], high=df['high'], low=df['low'], close=df['close'])])
-        fig.update_layout(height=400, margin=dict(l=0, r=0, t=30, b=0), template="plotly_dark")
+        fig = go.Figure(data=[go.Candlestick(
+            x=df.index, 
+            open=df['open'], 
+            high=df['high'], 
+            low=df['low'], 
+            close=df['close']
+        )])
+        fig.update_layout(
+            height=400, 
+            margin=dict(l=0, r=0, t=30, b=0), 
+            template="plotly_dark",
+            xaxis_rangeslider_visible=False
+        )
         chart_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
 
         # 4. Populate Context
