@@ -6,7 +6,7 @@ from .services.agent_graph import QuantAgent
 
 
 def analysis_lab(request):
-    return render(request, 'analyst/index.html')
+    return render(request, "analyst/index.html")
 
 
 def run_analysis(request):
@@ -35,20 +35,40 @@ def run_analysis(request):
         )
 
         # Chart Generation
-        fig = go.Figure(data=[go.Candlestick(
-            x=df.index, 
-            open=df['open'], 
-            high=df['high'], 
-            low=df['low'], 
-            close=df['close']
-        )])
-        fig.update_layout(
-            height=400, 
-            margin=dict(l=0, r=0, t=30, b=0), 
-            template="plotly_dark",
-            xaxis_rangeslider_visible=False
+        # 1. Give Plotly plenty of data to scroll into (e.g., last 180 trading days)
+        df_chart = df.tail(180)
+
+        # 2. Convert to native Python lists for bulletproof JSON serialization
+        fig = go.Figure(
+            data=[
+                go.Candlestick(
+                    x=df_chart.index.astype(str).tolist(),
+                    open=df_chart["open"].tolist(),
+                    high=df_chart["high"].tolist(),
+                    low=df_chart["low"].tolist(),
+                    close=df_chart["close"].tolist(),
+                )
+            ]
         )
-        chart_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
+
+        # 3. Calculate the date range for the last 30 days for our default zoom
+        initial_start = df_chart.index[-30].strftime("%Y-%m-%d")
+        initial_end = df_chart.index[-1].strftime("%Y-%m-%d")
+
+        fig.update_layout(
+            height=400,
+            margin=dict(l=0, r=0, t=30, b=0),
+            template="plotly_dark",
+            xaxis_rangeslider_visible=False,
+            # Tell Plotly to start zoomed in on this specific window
+            xaxis=dict(range=[initial_start, initial_end]),
+        )
+
+        # Generate the HTML snippet
+        chart_html = fig.to_html(full_html=False, include_plotlyjs=False)
+
+        # 3. Generate the HTML snippet
+        chart_html = fig.to_html(full_html=False, include_plotlyjs="cdn")
 
         # 4. Populate Context
         context.update(
